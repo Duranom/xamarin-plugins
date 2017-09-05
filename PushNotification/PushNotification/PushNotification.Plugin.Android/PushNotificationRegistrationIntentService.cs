@@ -9,20 +9,19 @@ using Android.OS;
 using Android.Runtime;
 using Android.Views;
 using Android.Widget;
-using Android.Gms.Gcm.Iid;
+using Android.Gms.Iid;
 using Android.Gms.Gcm;
 using PushNotification.Plugin.Abstractions;
 using Android.Support.V4.Content;
 
 namespace PushNotification.Plugin
 {
-
-    [Service(Exported=false)]
+    [Service(Exported = false)]
     public class PushNotificationRegistrationIntentService : IntentService
     {
 
         const string Tag = "PushNotificationRegistationIntentService";
-        private string[] Topics = new string[]{"global"};
+        private string[] Topics = new string[] { "global" };
         private readonly object syncLock = new object();
 
         protected override void OnHandleIntent(Intent intent)
@@ -33,39 +32,52 @@ namespace PushNotification.Plugin
                 lock (syncLock)
                 {
                     InstanceID instanceID = InstanceID.GetInstance(Android.App.Application.Context);
+
+#if _DEBUG_
+                    try
+                    {
+                        instanceID.DeleteInstanceID();
+                    }
+                    catch (Exception e)
+                    {
+                        Android.Util.Log.Debug(Tag, e.ToString());
+                    }
+                    instanceID = InstanceID.GetInstance(Android.App.Application.Context);
+#endif
+
                     string token = instanceID.GetToken(CrossPushNotification.SenderId,
                         GoogleCloudMessaging.InstanceIdScope, null);
 
                     CrossPushNotification.PushNotificationListener.OnRegistered(token, DeviceType.Android);
                     PushNotificationImplementation.StoreRegistrationId(Android.App.Application.Context, token);
-                    System.Diagnostics.Debug.WriteLine(string.Format("{0} - Device registered, registration ID=" + token, Tag));
+                    this.SubscribeTopics(token);
 
-
+                    System.Diagnostics.Debug.WriteLine($"{token} - Device registered, registration ID={Tag}");
                 }
 
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(string.Format("{0} - Error :" + ex.Message, Tag));
+                System.Diagnostics.Debug.WriteLine($"{ex.Message} - Error : {Tag}");
 
-                CrossPushNotification.PushNotificationListener.OnError(string.Format("{0} - Register - " + ex.ToString(), Tag), DeviceType.Android);
-              
+                CrossPushNotification.PushNotificationListener.OnError($"{ex.ToString()} - Register - {Tag}", DeviceType.Android);
+
 
             }
 
-           // Intent registrationComplete = new Intent(PushNotificationKey.RegistrationComplete);
+            // Intent registrationComplete = new Intent(PushNotificationKey.RegistrationComplete);
             // LocalBroadcastManager.GetInstance(Android.App.Application.Context).SendBroadcast(registrationComplete);
 
         }
 
         private void SubscribeTopics(string token)
         {
-            foreach(string topic in Topics) 
+            GcmPubSub pubSub = GcmPubSub.GetInstance(this);
+
+            foreach (string topic in Topics)
             {
-                 GcmPubSub pubSub = GcmPubSub.GetInstance(Android.App.Application.Context);
-                 pubSub.Subscribe(token, "/topics/" + topic, null);
+                pubSub.Subscribe(token, "/topics/" + topic, null);
             }
-         
-           
         }
     }
 }

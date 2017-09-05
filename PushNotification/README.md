@@ -1,18 +1,25 @@
 ## Push Notification Plugin for Xamarin
 
-Simple cross platform plugin to handle push notification events such as registering, unregistering and messages arrival on Android and iOS.
+Simple cross platform plugin to handle push notification events such as registering, unregistering and messages arrival on Android, iOS, UWP platforms.
 
 ### Setup
 * Available on NuGet: http://www.nuget.org/packages/Xam.Plugin.PushNotification
 * Install into your PCL project and Client projects.
 
-**Supports**
-* Xamarin.iOS
-* Xamarin.iOS (x64 Unified)
-* Xamarin.Android
+**Platform Support**
+
+|Platform|Supported|Version|
+| ------------------- | :-----------: | :------------------: |
+|Xamarin.iOS Unified|Yes|iOS 7+|
+|Xamarin.Android|Yes|API 16+|
+|Windows 10 UWP|Yes|10+|
 
 ### TODO
-* Include Windows Phone 8 (Silverlight), Windows Phone 8.1 RT, Windows Store 8.1 Support
+* Custom Notification Styling
+* Badges control support
+* Custom Notification processing handlers
+* Push notification video tutorial
+* Handling Notification click event
 
 ### API Usage
 
@@ -57,11 +64,17 @@ public override void OnCreate()
 Must implement IPushNotificationListener. This would be commonly implemented in the Core project if sharing code between Android or iOS. In the case you are using the plugin only for a specific platform this would be implemented in that platform.
 
 ```
+using Newtonsoft.Json.Linq;
+using PushNotification.Plugin;
+using PushNotification.Plugin.Abstractions;
+
+....
+
 public class  CrossPushNotificationListener : IPushNotificationListener
     {
         //Here you will receive all push notification messages
         //Messages arrives as a dictionary, the device type is also sent in order to check specific keys correctly depending on the platform.
-        void IPushNotificationListener.OnMessage(JObject arameters, DeviceType deviceType)
+        void IPushNotificationListener.OnMessage(JObject parameters, DeviceType deviceType)
         {
             Debug.WriteLine("Message Arrived");
         }
@@ -69,7 +82,7 @@ public class  CrossPushNotificationListener : IPushNotificationListener
         void IPushNotificationListener.OnRegistered(string Token, DeviceType deviceType)
         {
             Debug.WriteLine(string.Format("Push Notification - Device Registered - Token : {0}", Token));
-
+	}
          //Fires when device is unregistered
         void IPushNotificationListener.OnUnregistered(DeviceType deviceType)
         {
@@ -101,7 +114,9 @@ Enum of Device Types:
      public enum DeviceType
     {
         Android,
-        iOS
+        iOS,
+        WindowsPhone,
+        Windows
     }
 ```
 
@@ -126,7 +141,7 @@ void Unregister();
 
 ##### Android Specifics
 
-* Must compile against 21 as plugin is using API 21 specific things. Here is a great breakdown: http://redth.codes/such-android-api-levels-much-confuse-wow/
+* Must compile against 21+ as plugin is using API 21 specific things. Here is a great breakdown: http://redth.codes/such-android-api-levels-much-confuse-wow/
 * The <b>package name</b> of your Android aplication must <b>start with lower case</b> or you will get the build error: <code>Installation error: INSTALL_PARSE_FAILED_MANIFEST_MALFORMED</code> 
 * Make sure you have updated your Android SDK Manager libraries:
 
@@ -217,7 +232,15 @@ Just move your initialization stuff from MainActivity.cs to this Android Applica
 * iOS Application Bundle identifier must be the same corresponding to the profile used for code signing the app.
 * Must checkout the helper class on content folder: PushNotificationApplicationDelegate.txt. In order to setup correctly.
 
+##### Xamarin Forms Specifics
+* On Android project initialize the plugin on an Application class on android and start a sticky service so you can still receive notifications when application is closed. Consider that this application class and service can't have any Xamarin Forms related dependencies since Xamarin Forms is not initialized when app is closed, so it will crash if Xamarin dependencies are being used.
 
+##### Additional Considerations
+* On some phones android  background services might be blocked by some application. This is the case of ASUS Zenfone 3 that has an Auto-start manager, which disables background services by default. You need to make sure that your push notification service is not being blocked by some application like this one, since you won't receive push notifications when app is closed if so.
+
+##### Using FCM in iOS and Android
+
+* Use this plugin instead https://github.com/CrossGeeks/FirebasePushNotificationPlugin
 
 #### Contributors
 * [rdelrosario](https://github.com/rdelrosario)
@@ -228,6 +251,11 @@ Just move your initialization stuff from MainActivity.cs to this Android Applica
 * [cupn](https://github.com/cupn)
 * [charri](https://github.com/charri)
 * [timbrand](https://github.com/timbrand)
+* [kentcb](https://github.com/kentcb)
+* [Alessandro Moscatelli](https://www.linkedin.com/in/alessandromoscatelli)
+* [havalli](https://github.com/havalli)
+* [cschwarz](https://github.com/cschwarz)
+* [rhishikeshj](https://github.com/rhishikeshj)
 
 Thanks!
 
